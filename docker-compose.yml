@@ -1,0 +1,88 @@
+
+services:
+  # Service 1: PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine                    # Use the official PostgreSQL 15 image
+    container_name: tasks-postgres               # Name the container for easy reference
+    environment:                                  # Set environment variables inside the container
+      POSTGRES_DB: ${POSTGRES_DB}                 # Database name (from .env file)
+      POSTGRES_USER: ${POSTGRES_USER}             # Database user (from .env file)
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}     # Database password (from .env file)
+    volumes:                                      # Persistent storage
+      - postgres_data:/var/lib/postgresql/data    # Database data survives container restarts
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql  # Run init script on first start
+    ports:
+      - "5432:5432"                               # Map host port 5432 to container port 5432
+    healthcheck:                                  # Docker checks if the database is ready
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network                               # Connect to the custom bridge network
+
+  # Service 2: Redis Cache
+  redis:
+    image: redis:7-alpine                         # Use the official Redis 7 image
+    container_name: tasks-redis
+    ports:
+      - "6379:6379"                               # Map host port 6379 to container port 6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]         # Check if Redis responds to PING
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  # Service 3: Backend API (Node.js)
+  backend:
+    build: ./backend                              # Build from the Dockerfile in ./backend
+    container_name: tasks-backend
+    environment:
+      DB_HOST: ${DB_HOST}                         # PostgreSQL service name
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST}                   # Redis service name
+      PORT: 5000
+    depends_on:                                   # Wait for these services to be healthy first
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped                       # Auto-restart if the container crashes
+
+  # Service 4: Frontend (React)
+  frontend:
+    build: ./frontend                             # Build from the Dockerfile in ./frontend
+    container_name: tasks-frontend
+    environment:
+      REACT_APP_API_URL: http://localhost          # Backend URL (through Nginx proxy)
+    depends_on:
+      - backend                                   # Start after backend is running
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Service 5: Nginx Reverse Proxy
+  nginx:
+    build: ./nginx                                # Build from the Dockerfile in ./nginx
+    container_name: tasks-nginx
+    ports:
+      - "80:80"                                   # Map host port 80 to container port 80 (the only port exposed to the outside world)
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:                                  # Named volume for PostgreSQL data persistence
+
+networks:
+  app-network:                                    # Custom bridge network for all services
+    driver: bridge                                # Default network type (isolated from other Docker networks)
