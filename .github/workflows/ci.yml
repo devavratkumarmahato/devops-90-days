@@ -1,0 +1,24 @@
+# This file defines our Continuous Integration (CI) pipeline.
+# GitHub reads any YAML file under .github/workflows/ and runs it.
+
+name: CI                          # Name shown in the Actions tab
+
+on:                               # "on" = the triggers that start this workflow
+  push:                            # Run whenever code is pushed...
+    branches: ["**"]               # ...to ANY branch (we will narrow this later)
+  pull_request:                    # Run on pull requests too
+    branches: [main, docker-microservices]
+
+jobs:                              # A workflow is made of one or more jobs
+  hello:                           # Job id (must be unique inside this file)
+    name: Hello CI                 # Friendly name shown in the UI
+    runs-on: ubuntu-latest         # The "runner": a fresh Ubuntu VM GitHub provides
+
+    steps:                          # A job is a sequence of steps
+      - name: Print a greeting
+        run: |
+          echo "Hello from GitHub Actions!"
+          echo "Triggered by event: $GITHUB_EVENT_NAME"
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Branch: $GITHUB_REF_NAME"
+          echo "Commit SHA: $GITHUB_SHA"
