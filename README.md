@@ -83,6 +83,7 @@ docker-microservices/
 
 MIT
 
-Screenshot: 
+![Tasks App Screenshot](docs/screenshot.png)
+
 <img width="1348" height="643" alt="image" src="https://github.com/user-attachments/assets/f53c5a52-7c84-4568-95f4-9909cb71f9ae" />
 
