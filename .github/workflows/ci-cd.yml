@@ -1,25 +1,27 @@
-# This is a GitHub Actions workflow file
-# It defines what happens when you push code to the repository
-
-# Name of the workflow (shown in the GitHub Actions tab)
 name: CI/CD Pipeline
 
-# Trigger: this workflow runs when code is pushed to the 'main' branch
 on:
   push:
     branches: [main]
 
-# Jobs: a workflow consists of one or more jobs
 jobs:
-  # Job 1: Build and Test
   build-and-test:
-    runs-on: ubuntu-latest    # Use GitHub's free Ubuntu runner
+    runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Check out the repository code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Print a welcome message (just to test the pipeline works)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies and run tests
+        run: |
+          cd backend
+          npm install
+          npm test
+
       - name: Say hello
         run: echo "CI/CD pipeline is working!"
